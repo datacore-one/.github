@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: datacore-one/.github/.github/actions/safety-gate@main
+      - uses: datacore-one/.github/actions/safety-gate@main
 
   structural-validation:
     name: "Layer 2: Structural Validation"
@@ -33,7 +33,7 @@ jobs:
         with:
           fetch-depth: 0
       - id: validate
-        uses: datacore-one/.github/.github/actions/structural-validation@main
+        uses: datacore-one/.github/actions/structural-validation@main
 
   nightshift-review:
     name: "Layer 3: Deep Review"
