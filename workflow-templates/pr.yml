@@ -1,0 +1,10 @@
+name: PR Review
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  review:
+    uses: datacore-one/.github/.github/workflows/pr-review.yml@main
+    secrets:
+      NIGHTSHIFT_SSH_KEY: ${{ secrets.NIGHTSHIFT_SSH_KEY }}
