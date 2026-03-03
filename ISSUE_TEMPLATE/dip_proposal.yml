@@ -1,0 +1,41 @@
+name: DIP Proposal
+description: Propose a Datacore Improvement Proposal
+labels: ["dip", "discussion"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One-paragraph summary of the proposal
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: Why is this change needed? What problem does it solve?
+    validations:
+      required: true
+  - type: textarea
+    id: specification
+    attributes:
+      label: High-level specification
+      description: How would this work? Include key technical details.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: What other approaches were considered?
+    validations:
+      required: false
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Before submitting
+      options:
+        - label: I have checked existing DIPs for overlap
+          required: true
+        - label: This change is significant enough to warrant a DIP
+          required: true
