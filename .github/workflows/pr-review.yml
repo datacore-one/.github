@@ -10,6 +10,10 @@ on:
     secrets:
       NIGHTSHIFT_SSH_KEY:
         required: false
+      NIGHTSHIFT_HOST:
+        required: false
+      NIGHTSHIFT_USER:
+        required: false
       CONTRIBUTORS_PAT:
         required: false
 
@@ -44,29 +48,33 @@ jobs:
       - name: Trigger nightshift PR review
         env:
           NIGHTSHIFT_SSH_KEY: ${{ secrets.NIGHTSHIFT_SSH_KEY }}
+          NIGHTSHIFT_HOST: ${{ secrets.NIGHTSHIFT_HOST }}
+          NIGHTSHIFT_USER: ${{ secrets.NIGHTSHIFT_USER }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_REPO: ${{ github.repository }}
           PR_TYPES: ${{ needs.structural-validation.outputs.pr_types }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
-          if [ -z "$NIGHTSHIFT_SSH_KEY" ]; then
-            echo "Nightshift SSH key not configured, skipping deep review"
+          if [ -z "$NIGHTSHIFT_SSH_KEY" ] || [ -z "$NIGHTSHIFT_HOST" ]; then
+            echo "Nightshift not configured, skipping deep review"
             exit 0
           fi
+
+          # Base64 encode title to prevent shell injection
+          PR_TITLE_B64=$(echo -n "${{ github.event.pull_request.title }}" | base64 -w0)
 
           mkdir -p ~/.ssh
           echo "$NIGHTSHIFT_SSH_KEY" > ~/.ssh/nightshift_key
           chmod 600 ~/.ssh/nightshift_key
 
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/nightshift_key \
-            gregor@209.38.195.208 \
-            "cd /home/gregor/Data && python3 .datacore/lib/pr_review.py \
-              --repo '$PR_REPO' \
-              --pr '$PR_NUMBER' \
-              --types '$PR_TYPES' \
-              --title '$PR_TITLE' \
-              --author '$PR_AUTHOR'"
+            "${NIGHTSHIFT_USER}@${NIGHTSHIFT_HOST}" \
+            "cd ~/Data && python3 .datacore/lib/pr_review.py \
+              --repo '${PR_REPO}' \
+              --pr '${PR_NUMBER}' \
+              --types '${PR_TYPES}' \
+              --title-b64 '${PR_TITLE_B64}' \
+              --author '${PR_AUTHOR}'"
 
   label-pr:
     name: "Label PR"

@@ -1,0 +1,11 @@
+name: Award Points
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  award:
+    if: github.event.pull_request.merged == true
+    uses: datacore-one/.github/.github/workflows/award-points.yml@main
+    secrets:
+      CONTRIBUTORS_PAT: ${{ secrets.CONTRIBUTORS_PAT }}
