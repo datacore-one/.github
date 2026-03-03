@@ -54,14 +54,15 @@ jobs:
           PR_REPO: ${{ github.repository }}
           PR_TYPES: ${{ needs.structural-validation.outputs.pr_types }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           if [ -z "$NIGHTSHIFT_SSH_KEY" ] || [ -z "$NIGHTSHIFT_HOST" ]; then
             echo "Nightshift not configured, skipping deep review"
             exit 0
           fi
 
-          # Base64 encode title to prevent shell injection
-          PR_TITLE_B64=$(echo -n "${{ github.event.pull_request.title }}" | base64 -w0)
+          # Base64 encode title via env var (NOT ${{ }} interpolation) to prevent shell injection
+          PR_TITLE_B64=$(printf '%s' "$PR_TITLE" | base64 -w0)
 
           mkdir -p ~/.ssh
           echo "$NIGHTSHIFT_SSH_KEY" > ~/.ssh/nightshift_key

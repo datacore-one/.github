@@ -42,13 +42,17 @@ jobs:
       - name: Award points
         id: award
         working-directory: contributors
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_USERNAME: ${{ steps.pr.outputs.username }}
+          PR_LABELS: ${{ steps.pr.outputs.labels }}
         run: |
           python3 scripts/award_points.py \
-            --username "${{ steps.pr.outputs.username }}" \
+            --username "$PR_USERNAME" \
             --repo "${{ github.repository }}" \
             --pr ${{ github.event.pull_request.number }} \
-            --title "${{ github.event.pull_request.title }}" \
-            --labels "${{ steps.pr.outputs.labels }}"
+            --title "$PR_TITLE" \
+            --labels "$PR_LABELS"
 
       - name: Regenerate leaderboards
         working-directory: contributors
