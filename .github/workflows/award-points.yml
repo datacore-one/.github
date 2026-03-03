@@ -1,0 +1,65 @@
+name: Award Contribution Points
+
+on:
+  workflow_call:
+    secrets:
+      CONTRIBUTORS_PAT:
+        required: true
+
+jobs:
+  award:
+    name: Award Points
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Checkout contributors repo
+        uses: actions/checkout@v4
+        with:
+          repository: datacore-one/contributors
+          token: ${{ secrets.CONTRIBUTORS_PAT }}
+          path: contributors
+
+      - name: Get PR metadata
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          LABELS=$(gh pr view ${{ github.event.pull_request.number }} \
+            --repo ${{ github.repository }} \
+            --json labels --jq '[.labels[].name] | join(",")' 2>/dev/null || echo "")
+          echo "labels=$LABELS" >> $GITHUB_OUTPUT
+          echo "username=${{ github.event.pull_request.user.login }}" >> $GITHUB_OUTPUT
+
+      - name: Award points
+        id: award
+        working-directory: contributors
+        run: |
+          python3 scripts/award_points.py \
+            --username "${{ steps.pr.outputs.username }}" \
+            --repo "${{ github.repository }}" \
+            --pr ${{ github.event.pull_request.number }} \
+            --title "${{ github.event.pull_request.title }}" \
+            --labels "${{ steps.pr.outputs.labels }}"
+
+      - name: Regenerate leaderboards
+        working-directory: contributors
+        run: python3 scripts/generate_leaderboards.py
+
+      - name: Commit and push
+        working-directory: contributors
+        run: |
+          git config user.name "datacore-bot"
+          git config user.email "bot@datacore.one"
+          git add profiles/ leaderboards/
+          git diff --cached --quiet || \
+            git commit -m "award: ${{ steps.pr.outputs.username }} +${{ steps.award.outputs.points }}pts (${{ steps.award.outputs.type }}) from ${{ github.repository }}#${{ github.event.pull_request.number }}"
+          git push
