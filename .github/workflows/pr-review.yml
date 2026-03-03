@@ -1,0 +1,91 @@
+name: PR Review Pipeline
+
+on:
+  workflow_call:
+    inputs:
+      enable_nightshift:
+        description: 'Enable Layer 3 nightshift review'
+        type: boolean
+        default: true
+    secrets:
+      NIGHTSHIFT_SSH_KEY:
+        required: false
+      CONTRIBUTORS_PAT:
+        required: false
+
+jobs:
+  safety-gate:
+    name: "Layer 1: Safety Gate"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: datacore-one/.github/.github/actions/safety-gate@main
+
+  structural-validation:
+    name: "Layer 2: Structural Validation"
+    runs-on: ubuntu-latest
+    outputs:
+      pr_types: ${{ steps.validate.outputs.pr_types }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: validate
+        uses: datacore-one/.github/.github/actions/structural-validation@main
+
+  nightshift-review:
+    name: "Layer 3: Deep Review"
+    runs-on: ubuntu-latest
+    needs: [safety-gate, structural-validation]
+    if: inputs.enable_nightshift && needs.safety-gate.result == 'success' && needs.structural-validation.result == 'success'
+    steps:
+      - name: Trigger nightshift PR review
+        env:
+          NIGHTSHIFT_SSH_KEY: ${{ secrets.NIGHTSHIFT_SSH_KEY }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_REPO: ${{ github.repository }}
+          PR_TYPES: ${{ needs.structural-validation.outputs.pr_types }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          if [ -z "$NIGHTSHIFT_SSH_KEY" ]; then
+            echo "Nightshift SSH key not configured, skipping deep review"
+            exit 0
+          fi
+
+          mkdir -p ~/.ssh
+          echo "$NIGHTSHIFT_SSH_KEY" > ~/.ssh/nightshift_key
+          chmod 600 ~/.ssh/nightshift_key
+
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/nightshift_key \
+            gregor@209.38.195.208 \
+            "cd /home/gregor/Data && python3 .datacore/lib/pr_review.py \
+              --repo '$PR_REPO' \
+              --pr '$PR_NUMBER' \
+              --types '$PR_TYPES' \
+              --title '$PR_TITLE' \
+              --author '$PR_AUTHOR'"
+
+  label-pr:
+    name: "Label PR"
+    runs-on: ubuntu-latest
+    needs: [structural-validation]
+    if: always() && needs.structural-validation.result == 'success'
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Apply type labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_TYPES: ${{ needs.structural-validation.outputs.pr_types }}
+        run: |
+          IFS=',' read -ra TYPES <<< "$PR_TYPES"
+          for type in "${TYPES[@]}"; do
+            if [ -n "$type" ]; then
+              gh pr edit ${{ github.event.pull_request.number }} \
+                --repo ${{ github.repository }} \
+                --add-label "type:${type}" 2>/dev/null || true
+            fi
+          done
