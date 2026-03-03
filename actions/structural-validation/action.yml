@@ -1,0 +1,31 @@
+name: 'Datacore Structural Validation'
+description: 'Validate PR structure: module.yaml, DIP format, agent registry, linting'
+
+outputs:
+  passed:
+    description: 'Whether validation passed'
+    value: ${{ steps.validate.outcome == 'success' }}
+  pr_types:
+    description: 'Detected PR types (comma-separated)'
+    value: ${{ steps.validate.outputs.pr_types }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      shell: bash
+      run: pip install pyyaml ruff 2>/dev/null || true
+
+    - name: Fetch base branch for diff
+      shell: bash
+      run: git fetch origin main --depth=1
+
+    - name: Run structural validation
+      id: validate
+      shell: bash
+      run: python3 ${{ github.action_path }}/validate.py
