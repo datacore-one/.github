@@ -267,6 +267,40 @@ class TestAllowlist(unittest.TestCase):
         errors = scan_content_patterns(lines, SECRET_PATTERNS, "Secret detected")
         self.assertEqual(len(errors), 0)
 
+    def test_ignores_noreply_email(self):
+        """noreply@github.com should not flag as PII."""
+        lines = self._make_added_lines("Author: GitHub <noreply@github.com>")
+        errors = scan_content_patterns(lines, PERSONAL_DATA_PATTERNS, "Personal data")
+        self.assertEqual(len(errors), 0)
+
+    def test_ignores_actions_github_email(self):
+        """actions@github.com should not flag as PII."""
+        lines = self._make_added_lines("committer: actions@github.com")
+        errors = scan_content_patterns(lines, PERSONAL_DATA_PATTERNS, "Personal data")
+        self.assertEqual(len(errors), 0)
+
+    def test_ignores_co_authored_by_trailer(self):
+        """Co-Authored-By git trailers should not flag."""
+        lines = self._make_added_lines(
+            "Co-Authored-By: Claude <claude@anthropic.com>"
+        )
+        errors = scan_content_patterns(lines, PERSONAL_DATA_PATTERNS, "Personal data")
+        self.assertEqual(len(errors), 0)
+
+    def test_ignores_npm_scoped_package(self):
+        """npm scoped packages like @scope/pkg should not flag."""
+        lines = self._make_added_lines('"@datacore/utils": "^1.0.0"')
+        errors = scan_content_patterns(lines, PERSONAL_DATA_PATTERNS, "Personal data")
+        self.assertEqual(len(errors), 0)
+
+    def test_ignores_dependabot_email(self):
+        """dependabot addresses should not flag."""
+        lines = self._make_added_lines(
+            "author: dependabot[bot] <support@dependabot.com>"
+        )
+        errors = scan_content_patterns(lines, PERSONAL_DATA_PATTERNS, "Personal data")
+        self.assertEqual(len(errors), 0)
+
     def test_real_key_not_allowlisted(self):
         """Ensure a real-looking key is NOT allowlisted."""
         content = "api_key = sk_live_a1b2c3d4e5f6g7h8i9j0"

@@ -81,6 +81,11 @@ ALLOWLIST_PATTERNS = [
     r"your[_\-]?secret",
     r"your[_\-]?token",
     r"your[_\-]?password",
+    r"noreply@",                       # automated no-reply addresses
+    r"actions@github\.com",            # GitHub Actions bot
+    r"Co-Authored-By:",                # git commit trailers
+    r"@[a-zA-Z0-9\-]+/[a-zA-Z0-9\-]+",  # npm scoped packages (@scope/pkg)
+    r"dependabot",                     # dependabot addresses
 ]
 
 
