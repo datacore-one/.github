@@ -1,0 +1,19 @@
+name: 'Datacore Safety Gate'
+description: 'Scan PR for secrets, personal data, and forbidden file patterns'
+
+outputs:
+  passed:
+    description: 'Whether the safety gate passed'
+    value: ${{ steps.scan.outcome == 'success' }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Fetch base branch for diff
+      shell: bash
+      run: git fetch origin main --depth=1
+
+    - name: Run safety scan
+      id: scan
+      shell: bash
+      run: python3 ${{ github.action_path }}/scan.py
