@@ -187,7 +187,7 @@ class TestPersonalDataPatterns(unittest.TestCase):
         return [(filename, 1, content)]
 
     def test_detects_macos_path(self):
-        lines = self._make_added_lines('path = "/Users/gregor/Data/project"')
+        lines = self._make_added_lines('path = "/Users/testuser/Data/project"')
         errors = scan_content_patterns(lines, PERSONAL_DATA_PATTERNS, "Personal data")
         self.assertGreater(len(errors), 0)
         self.assertIn("macOS absolute path", errors[0])
@@ -199,13 +199,13 @@ class TestPersonalDataPatterns(unittest.TestCase):
         self.assertIn("Linux absolute path", errors[0])
 
     def test_detects_windows_path(self):
-        lines = self._make_added_lines('path = "C:\\\\Users\\\\gregor\\\\Documents"')
+        lines = self._make_added_lines('path = "C:\\\\Users\\\\testuser\\\\Documents"')
         errors = scan_content_patterns(lines, PERSONAL_DATA_PATTERNS, "Personal data")
         self.assertGreater(len(errors), 0)
         self.assertIn("Windows absolute path", errors[0])
 
     def test_detects_email(self):
-        lines = self._make_added_lines("contact gregor@datafund.io for help")
+        lines = self._make_added_lines("contact user@testorg.io for help")
         errors = scan_content_patterns(lines, PERSONAL_DATA_PATTERNS, "Personal data")
         self.assertGreater(len(errors), 0)
         self.assertIn("Email address", errors[0])
